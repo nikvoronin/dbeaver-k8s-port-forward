@@ -76,10 +76,11 @@ versioned), so it's best for staying current rather than pinning to a specific r
 
 Published releases are at
 [github.com/nikvoronin/dbeaver-k8s-port-forward/releases](https://github.com/nikvoronin/dbeaver-k8s-port-forward/releases).
-Each release carries a `p2-repository-<tag>.zip` asset — the same p2 site described below,
-pre-built by CI (see `.github/workflows/release.yml`), so no JDK/Maven is needed to install it.
+Each release carries a `dbeaver-k8s-port-forward_<tag>.zip` asset — the same p2 site described
+below, pre-built by CI (see `.github/workflows/release.yml`), so no JDK/Maven is needed to
+install it.
 
-1. Download `p2-repository-<tag>.zip` from the release,
+1. Download `dbeaver-k8s-port-forward_<tag>.zip` from the release,
 2. and extract it somewhere
    (e.g. `C:\dbeaver-k8s-port-forward-repo\`).
 3. In DBeaver:

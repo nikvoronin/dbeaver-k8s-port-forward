@@ -57,7 +57,7 @@ jobs:
       - name: Package the p2 repository as a release asset
         run: |
           cd repository/target/repository
-          zip -r "${{ github.workspace }}/p2-repository-${{ github.ref_name }}.zip" .
+          zip -r "${{ github.workspace }}/dbeaver-k8s-port-forward_${{ github.ref_name }}.zip" .
 
       - name: Create draft release
         uses: softprops/action-gh-release@v2
@@ -65,6 +65,6 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            p2-repository-${{ github.ref_name }}.zip
+            dbeaver-k8s-port-forward_${{ github.ref_name }}.zip
             plugins/io.github.nikvoronin.dbeaver.k8s/target/io.github.nikvoronin.dbeaver.k8s_*.jar
             plugins/io.github.nikvoronin.dbeaver.k8s.ui/target/io.github.nikvoronin.dbeaver.k8s.ui_*.jar

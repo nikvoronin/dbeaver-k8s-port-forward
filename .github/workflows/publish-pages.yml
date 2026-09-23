@@ -2,8 +2,8 @@ name: Publish p2 repository to GitHub Pages
 
 # Fires when a GitHub Release is published -- including publishing a release that was
 # previously sitting as a draft (e.g. the draft created by .github/workflows/release.yml).
-# Does NOT rebuild anything: it fetches the p2-repository-<tag>.zip asset that release.yml
-# already built and attached, and republishes its contents as the GitHub Pages site.
+# Does NOT rebuild anything: it fetches the dbeaver-k8s-port-forward_<tag>.zip asset that
+# release.yml already built and attached, and republishes its contents as the GitHub Pages site.
 #
 # One-time manual prerequisite: Settings -> Pages -> Source = "GitHub Actions" must be set
 # once for this repo before actions/deploy-pages below will succeed.
@@ -36,23 +36,23 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          ASSET="p2-repository-${TAG}.zip"
+          ASSET="dbeaver-k8s-port-forward_${TAG}.zip"
           mkdir -p download
           echo "Downloading ${ASSET} from release ${TAG}"
           if ! gh release download "${TAG}" \
               --repo "${{ github.repository }}" \
               --pattern "${ASSET}" \
               --dir download; then
-            echo "::error::Asset '${ASSET}' was not found on release '${TAG}'. This workflow expects the release to carry a p2-repository-<tag>.zip built by .github/workflows/release.yml (the tag-push build). If this release was created manually, or the asset was renamed/removed, attach a matching ${ASSET} asset to the release and re-run this workflow (or re-publish the release) to update the Pages site."
+            echo "::error::Asset '${ASSET}' was not found on release '${TAG}'. This workflow expects the release to carry a dbeaver-k8s-port-forward_<tag>.zip built by .github/workflows/release.yml (the tag-push build). If this release was created manually, or the asset was renamed/removed, attach a matching ${ASSET} asset to the release and re-run this workflow (or re-publish the release) to update the Pages site."
             exit 1
           fi
 
-      # p2-repository-<tag>.zip was zipped from inside repository/target/repository (see
-      # release.yml), so it unpacks flat: content.jar, artifacts.jar, plugins/*.jar with no
+      # dbeaver-k8s-port-forward_<tag>.zip was zipped from inside repository/target/repository
+      # (see release.yml), so it unpacks flat: content.jar, artifacts.jar, plugins/*.jar with no
       # wrapping folder -- exactly what needs to sit at the Pages root.
       - name: Unzip the p2 repository
         run: |
-          ASSET="download/p2-repository-${{ github.event.release.tag_name }}.zip"
+          ASSET="download/dbeaver-k8s-port-forward_${{ github.event.release.tag_name }}.zip"
           mkdir -p pages-root
           unzip -q "$ASSET" -d pages-root
           echo "Publishing the following p2 site contents:"
