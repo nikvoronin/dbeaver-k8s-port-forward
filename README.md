@@ -1,6 +1,4 @@
-# dbeaver-k8s-port-forward
-
-Kubernetes Port Forward for DBeaver Community
+# Kubernetes Port Forward for DBeaver Community
 
 ```mermaid
 flowchart LR
