@@ -49,7 +49,7 @@ implements its own auth, so anything your `kubectl` already supports (EKS, GKE, 
 ## Requirements
 
 - DBeaver Community Edition (built/tested against the `devel` branch at commit `fc2a972a`,
-  product version `26.2.2` — see "Compatibility" below).
+  product version `26.2.2` — see [Compatibility](#compatibility) below).
 - A `kubectl` binary reachable by DBeaver (on `PATH`, or an absolute path configured in the
   handler).
 - A working kubeconfig with network access to the target Kubernetes API server.
