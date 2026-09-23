@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  Custom category for the generated p2 site (see pom.xml). Without this file,
+  org.reficio:p2-maven-plugin falls back to its own built-in default (a single category named
+  "all", labeled "Maven osgi-bundles"); this file only replaces that generic label with a
+  project-specific one. The <iu>/<query> block is copied from the plugin's own default template
+  (matches every osgi.bundle capability the generated site publishes), not hand-invented.
+-->
+<site>
+    <category-def name="io.github.nikvoronin.dbeaver.k8s.category" label="DBeaver Kubernetes Extensions"/>
+    <iu>
+        <category name="io.github.nikvoronin.dbeaver.k8s.category"/>
+        <query>
+            <expression type="match">providedCapabilities.exists(p | p.namespace == 'osgi.bundle')</expression>
+        </query>
+    </iu>
+</site>

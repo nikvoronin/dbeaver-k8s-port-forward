@@ -1,0 +1,32 @@
+# IDE
+.idea/
+.vscode/
+.settings/
+.project
+.classpath
+
+# Java / Maven / Eclipse
+target/
+bin/
+*.class
+pom.xml.versionsBackup
+
+# Eclipse PDE
+.metadata/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude local configuration
+CLAUDE.local.md
+
+# Temporary reference repositories
+.reference/
+.tmp/
+
+# Defensive extras (nothing currently on disk matches these; kept as a safety net)
+*.log
+*.iml
+.env
+local.properties

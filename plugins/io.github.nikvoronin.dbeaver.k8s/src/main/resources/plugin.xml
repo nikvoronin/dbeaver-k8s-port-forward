@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<!--
+  Registers the "Kubernetes" network handler with DBeaver's
+  org.jkiss.dbeaver.networkHandler extension point (see docs/dbeaver-api-notes.md, traced
+  against the built-in SSH tunnel handler in org.jkiss.dbeaver.net.ssh/plugin.xml).
+
+  type="tunnel" is what tells DBeaver to treat the DBPConnectionConfiguration returned by
+  initializeHandler() as the *effective* JDBC endpoint (see DBWUtils.updateConfigWithTunnelInfo).
+
+  The <propertyGroup>/<property> elements below are descriptive metadata only (consumed by
+  DBeaver's CLI handler listing, for example) — the actual settings UI is a hand-written SWT
+  panel registered separately, in io.github.nikvoronin.dbeaver.k8s.ui/plugin.xml, via the
+  org.jkiss.dbeaver.ui.propertyConfigurator extension point.
+-->
+<plugin>
+
+    <extension point="org.jkiss.dbeaver.networkHandler">
+        <handler
+                type="tunnel"
+                id="k8s_port_forward"
+                codeName="Kubernetes"
+                prefix="k8s"
+                label="Kubernetes"
+                description="Kubernetes Port Forward for DBeaver"
+                desktop="true"
+                secured="false"
+                order="2"
+                handlerClass="io.github.nikvoronin.dbeaver.k8s.handler.KubernetesTunnelHandler">
+            <propertyGroup label="Kubernetes Settings">
+                <property id="kubectlPath" label="kubectl executable" type="string"
+                          description="Path to the kubectl executable" defaultValue="kubectl"/>
+                <property id="kubeconfig" label="kubeconfig" type="file"
+                          description="Path to a kubeconfig file (blank = kubectl's own default resolution)"/>
+                <property id="context" label="Context" type="string"
+                          description="kubeconfig context to use (blank = kubeconfig's current-context)"/>
+                <property id="namespace" label="Namespace" type="string"
+                          description="Kubernetes namespace" defaultValue="default"/>
+                <property id="resource" label="Resource" type="string" required="true"
+                          description="kubectl resource reference, e.g. svc/postgres, pod/postgres-0, deployment/postgres"/>
+                <property id="remotePort" label="Remote port" type="integer"
+                          description="Port exposed by the resource inside the cluster (blank = use the connection's own configured port)"/>
+                <property id="localPort" label="Local port" type="integer"
+                          description="Local TCP port to bind (blank or 0 = automatic, kubectl-assigned)"/>
+                <property id="bindAddress" label="Bind address" type="string" defaultValue="127.0.0.1"
+                          description="Local address to bind the forwarded port to"/>
+                <property id="startupTimeout" label="Startup timeout (seconds)" type="integer" defaultValue="15"
+                          description="How long to wait for kubectl port-forward to report readiness"/>
+            </propertyGroup>
+        </handler>
+    </extension>
+
+</plugin>

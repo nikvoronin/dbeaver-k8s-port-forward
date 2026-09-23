@@ -1,0 +1,7 @@
+# The POSIX Maven Wrapper script must always check out with LF line endings, even on Windows
+# with core.autocrlf=true, or it breaks with "bad interpreter" errors under Git Bash/WSL/Linux/macOS.
+mvnw text eol=lf
+mvnw.cmd text eol=crlf
+
+*.jar binary
+*.zip binary

@@ -1,0 +1,11 @@
+Bundle-SymbolicName: io.github.nikvoronin.dbeaver.k8s.ui;singleton:=true
+Bundle-Name: Kubernetes Port Forward for DBeaver - UI
+Bundle-Version: ${version_cleanup;${project.version}}
+Bundle-Vendor: dbeaver-k8s-port-forward contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+
+# Loaded purely via Eclipse's extension registry (plugin.xml -> uiClass), never imported by
+# another bundle at compile time.
+-exportcontents:
+
+Import-Package: *

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.nikvoronin.dbeaver.k8s</groupId>
+        <artifactId>dbeaver-k8s-port-forward</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>p2-repository</artifactId>
+    <packaging>pom</packaging>
+
+    <name>Kubernetes Port Forward for DBeaver - P2 Repository</name>
+    <description>
+        Kubernetes Port Forward for DBeaver
+    </description>
+
+    <!--
+      Wraps the two already-built, unmodified bnd-bundle jars (io.github.nikvoronin.dbeaver.k8s
+      and its .ui companion) into a real p2 metadata repository with one category, using
+      org.reficio:p2-maven-plugin. This is a plain Maven plugin, not Tycho, and needs no external
+      DBeaver installation at build time; it is purpose-built for wrapping ordinary OSGi bundle
+      jars into a categorized p2 site.
+
+      Why this exists instead of a full Tycho conversion: see docs/dbeaver-api-notes.md section 7
+      (why this project deliberately does not build with Tycho) and section 9 (why this module
+      doesn't change that decision; it only adds a grouping wrapper on top of the unchanged
+      bundle build, closing the one documented gap: DBeaver's "Help > Install New Software..."
+      wizard only lists p2 installable units of type `group` (Features/Categories), and this
+      project previously published only two plain bundle IUs with no grouping).
+
+      These <dependencies> are not used by any code here; they exist purely to make Maven build
+      the two plugin modules first and make their jars available to this reactor session, which
+      p2-maven-plugin's own artifact resolution relies on.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>io.github.nikvoronin.dbeaver.k8s</groupId>
+            <artifactId>io.github.nikvoronin.dbeaver.k8s</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.nikvoronin.dbeaver.k8s</groupId>
+            <artifactId>io.github.nikvoronin.dbeaver.k8s.ui</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.reficio</groupId>
+                <artifactId>p2-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-p2-repository</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>site</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Groups both bundles under one labeled category instead of the
+                                 plugin's generic default ("all" / "Maven osgi-bundles"). Uses the
+                                 non-deprecated element name (categoryFileURL was deprecated in
+                                 favor of this one in 3.0.0), though it does NOT actually silence
+                                 the plugin's "Parameter 'categoryFileURL' is deprecated" warning;
+                                 verified that warning is logged unconditionally by this version of
+                                 the plugin regardless of which of the two names is configured. -->
+                            <categoryFilePath>category.xml</categoryFilePath>
+                            <!--
+                              p2-maven-plugin 3.0.0 also unconditionally logs "Parameter 'artifacts'
+                              is read-only, must not be used in configuration" whenever this goal
+                              runs. Verified (by rebuilding and re-inspecting the generated
+                              content.xml) that both warnings above are harmless plugin-descriptor/
+                              logging quirks in this version, not functional regressions: both
+                              bundles and the category still come out correct every time. There is
+                              no replacement parameter in the 3.0.0 plugin descriptor for declaring
+                              individual GAV artifacts, so this stays as-is.
+                            -->
+                            <artifacts>
+                                <artifact>
+                                    <id>io.github.nikvoronin.dbeaver.k8s:io.github.nikvoronin.dbeaver.k8s:${project.version}</id>
+                                </artifact>
+                                <artifact>
+                                    <id>io.github.nikvoronin.dbeaver.k8s:io.github.nikvoronin.dbeaver.k8s.ui:${project.version}</id>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

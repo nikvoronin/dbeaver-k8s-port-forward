@@ -1,0 +1,19 @@
+Bundle-SymbolicName: io.github.nikvoronin.dbeaver.k8s;singleton:=true
+Bundle-Name: Kubernetes Port Forward for DBeaver - Core
+Bundle-Version: ${version_cleanup;${project.version}}
+Bundle-Vendor: dbeaver-k8s-port-forward contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+
+# KubernetesTunnelHandler itself is loaded purely via Eclipse's extension registry
+# (plugin.xml -> handlerClass), but the UI companion bundle
+# (io.github.nikvoronin.dbeaver.k8s.ui) genuinely imports KubernetesTunnelConstants,
+# KubernetesTunnelConfig and KubectlCommandBuilder at compile *and* OSGi run time (its "Test
+# kubectl" action reuses the real command builder), so both packages must be exported for that
+# Import-Package to resolve once both bundles are installed side by side.
+Export-Package: io.github.nikvoronin.dbeaver.k8s.tunnel, io.github.nikvoronin.dbeaver.k8s.handler
+
+# Computed automatically from the actual bytecode; only org.jkiss.dbeaver.model's packages and
+# org.eclipse.core.runtime (transitively required by DBRProgressMonitor) end up here.
+# plugin.xml is picked up automatically: it lives at src/main/resources/plugin.xml, so it is
+# already at the jar root once maven-resources-plugin copies it into target/classes.
+Import-Package: *

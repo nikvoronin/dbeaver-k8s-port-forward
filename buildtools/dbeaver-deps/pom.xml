@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.nikvoronin.dbeaver.k8s</groupId>
+        <artifactId>dbeaver-k8s-port-forward</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>dbeaver-deps</artifactId>
+    <packaging>pom</packaging>
+
+    <name>DBeaver p2 dependency provisioning</name>
+    <description>
+        Kubernetes Port Forward for DBeaver
+    </description>
+
+    <properties>
+        <dbeaver.jars.dir>${project.build.directory}/dbeaver-jars</dbeaver.jars.dir>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>download-dbeaver-model</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>wget</goal></goals>
+                        <configuration>
+                            <url>${dbeaver.p2.baseUrl}/org.jkiss.dbeaver.model_${dbeaver.model.version}.jar</url>
+                            <outputDirectory>${dbeaver.jars.dir}</outputDirectory>
+                            <outputFileName>org.jkiss.dbeaver.model-${dbeaver.model.version}.jar</outputFileName>
+                            <overwrite>false</overwrite>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>download-dbeaver-ui</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>wget</goal></goals>
+                        <configuration>
+                            <url>${dbeaver.p2.baseUrl}/org.jkiss.dbeaver.ui_${dbeaver.ui.version}.jar</url>
+                            <outputDirectory>${dbeaver.jars.dir}</outputDirectory>
+                            <outputFileName>org.jkiss.dbeaver.ui-${dbeaver.ui.version}.jar</outputFileName>
+                            <overwrite>false</overwrite>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>download-jkiss-utils</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>wget</goal></goals>
+                        <configuration>
+                            <url>${dbeaver.p2.baseUrl}/org.jkiss.utils_${dbeaver.jkissutils.version}.jar</url>
+                            <outputDirectory>${dbeaver.jars.dir}</outputDirectory>
+                            <outputFileName>org.jkiss.utils-${dbeaver.jkissutils.version}.jar</outputFileName>
+                            <overwrite>false</overwrite>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install-dbeaver-model</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${dbeaver.jars.dir}/org.jkiss.dbeaver.model-${dbeaver.model.version}.jar</file>
+                            <groupId>org.jkiss.dbeaver.p2</groupId>
+                            <artifactId>org.jkiss.dbeaver.model</artifactId>
+                            <version>${dbeaver.model.version}</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-dbeaver-ui</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${dbeaver.jars.dir}/org.jkiss.dbeaver.ui-${dbeaver.ui.version}.jar</file>
+                            <groupId>org.jkiss.dbeaver.p2</groupId>
+                            <artifactId>org.jkiss.dbeaver.ui</artifactId>
+                            <version>${dbeaver.ui.version}</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install-jkiss-utils</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>install-file</goal></goals>
+                        <configuration>
+                            <file>${dbeaver.jars.dir}/org.jkiss.utils-${dbeaver.jkissutils.version}.jar</file>
+                            <groupId>org.jkiss.dbeaver.p2</groupId>
+                            <artifactId>org.jkiss.utils</artifactId>
+                            <version>${dbeaver.jkissutils.version}</version>
+                            <packaging>jar</packaging>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

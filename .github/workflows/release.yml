@@ -1,0 +1,70 @@
+name: Build and draft release
+
+# Fires on any tag push, then verifies the tag actually points at a commit reachable from
+# master before doing anything else -- a tag pushed on some other branch is ignored (the job
+# fails fast with a clear message instead of silently building/releasing it).
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag is reachable from master
+        run: |
+          git fetch origin master --quiet
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/master; then
+            echo "::error::Tag ${{ github.ref_name }} (commit ${{ github.sha }}) is not reachable from origin/master. Refusing to build a release from it."
+            exit 1
+          fi
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # Stamps the tag (with an optional leading "v" stripped) onto every module's <version>,
+      # including the <parent><version> reference in each child pom.xml -- this repo does not
+      # keep a released version committed in pom.xml between tags, so this happens fresh in the
+      # runner's checkout on every release build and is never committed back.
+      - name: Set project version to match the tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Setting project version to $VERSION"
+          ./mvnw --batch-mode versions:set -DnewVersion="$VERSION" -DprocessAllModules=true -DgenerateBackupPoms=false
+
+      - name: Build (clean verify)
+        run: ./mvnw --batch-mode --no-transfer-progress clean verify
+
+      # repository/target/repository is a p2 metadata *directory* (content.jar/artifacts.jar/
+      # plugins/*.jar) -- GitHub release assets must be single files, so it is zipped here.
+      - name: Package the p2 repository as a release asset
+        run: |
+          cd repository/target/repository
+          zip -r "${{ github.workspace }}/p2-repository-${{ github.ref_name }}.zip" .
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            p2-repository-${{ github.ref_name }}.zip
+            plugins/io.github.nikvoronin.dbeaver.k8s/target/io.github.nikvoronin.dbeaver.k8s_*.jar
+            plugins/io.github.nikvoronin.dbeaver.k8s.ui/target/io.github.nikvoronin.dbeaver.k8s.ui_*.jar

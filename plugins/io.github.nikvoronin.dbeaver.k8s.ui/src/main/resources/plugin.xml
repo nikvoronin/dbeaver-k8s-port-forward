@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<!--
+  Registers the settings panel for the "Kubernetes" network handler via DBeaver's
+  org.jkiss.dbeaver.ui.propertyConfigurator extension point (see docs/dbeaver-api-notes.md
+  section 5, traced against org.jkiss.dbeaver.core/plugin.xml's SOCKS proxy registration).
+
+  "class" must be the handler implementation class registered as handlerClass in
+  io.github.nikvoronin.dbeaver.k8s/plugin.xml — DBeaver looks up the configurator by that class
+  name, not by the handler's extension id.
+-->
+<plugin>
+
+    <extension point="org.jkiss.dbeaver.ui.propertyConfigurator">
+        <propertyConfigurator
+                class="io.github.nikvoronin.dbeaver.k8s.handler.KubernetesTunnelHandler"
+                uiClass="io.github.nikvoronin.dbeaver.k8s.ui.KubernetesTunnelConfiguratorUI"/>
+    </extension>
+
+</plugin>

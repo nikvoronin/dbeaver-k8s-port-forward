@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.nikvoronin.dbeaver.k8s</groupId>
+    <artifactId>dbeaver-k8s-port-forward</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Kubernetes Port Forward for DBeaver</name>
+    <description>
+        Kubernetes Port Forward for DBeaver
+    </description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>21</maven.compiler.release>
+
+        <!--
+          DBeaver Community publishes its own bundles as a p2 repository at
+          https://dbeaver.io/update/latest/ (the same repository the desktop app's
+          "Check for Updates" uses). There is no Maven Central distribution of
+          org.jkiss.* bundles, so the exact jar files below are downloaded from that
+          p2 repository at build time by the buildtools/dbeaver-deps module and
+          installed into the local Maven repository under the org.jkiss.dbeaver.p2
+          groupId. See docs/dbeaver-api-notes.md section 7 for the full rationale.
+
+          NOTE: dbeaver.io/update/latest only keeps the most recently published
+          build, so these exact qualifiers will eventually 404. If a build fails
+          with "Could not find artifact" for one of these, browse
+          https://dbeaver.io/update/latest/plugins/ and update the versions below
+          (and the matching download URLs in buildtools/dbeaver-deps/pom.xml) to
+          whatever is currently published there.
+        -->
+        <dbeaver.p2.baseUrl>https://dbeaver.io/update/latest/plugins</dbeaver.p2.baseUrl>
+        <dbeaver.model.version>2.0.47.202609210342</dbeaver.model.version>
+        <dbeaver.ui.version>5.1.202.202609210342</dbeaver.ui.version>
+        <dbeaver.jkissutils.version>2.9.0.202609210342</dbeaver.jkissutils.version>
+
+        <!-- Eclipse Platform bundles are published to Maven Central under this groupId. -->
+        <eclipse.platform.version>3.35.0</eclipse.platform.version>
+        <eclipse.swt.version>3.135.0</eclipse.swt.version>
+
+        <junit.version>5.14.4</junit.version>
+
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+        <maven-install-plugin.version>3.2.0</maven-install-plugin.version>
+        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+        <download-maven-plugin.version>1.13.0</download-maven-plugin.version>
+        <bnd-maven-plugin.version>7.4.0</bnd-maven-plugin.version>
+        <p2-maven-plugin.version>3.0.0</p2-maven-plugin.version>
+        <versions-maven-plugin.version>2.22.0</versions-maven-plugin.version>
+    </properties>
+
+    <modules>
+        <!-- Must build first: provisions org.jkiss.* jars into the local repo. -->
+        <module>buildtools/dbeaver-deps</module>
+        <module>plugins/io.github.nikvoronin.dbeaver.k8s</module>
+        <module>plugins/io.github.nikvoronin.dbeaver.k8s.ui</module>
+        <module>repository</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.jkiss.dbeaver.p2</groupId>
+                <artifactId>org.jkiss.dbeaver.model</artifactId>
+                <version>${dbeaver.model.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jkiss.dbeaver.p2</groupId>
+                <artifactId>org.jkiss.dbeaver.ui</artifactId>
+                <version>${dbeaver.ui.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jkiss.dbeaver.p2</groupId>
+                <artifactId>org.jkiss.utils</artifactId>
+                <version>${dbeaver.jkissutils.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.platform</groupId>
+                <artifactId>org.eclipse.core.runtime</artifactId>
+                <version>${eclipse.platform.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.platform</groupId>
+                <artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
+                <version>${eclipse.swt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${maven-install-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.googlecode.maven-download-plugin</groupId>
+                    <artifactId>download-maven-plugin</artifactId>
+                    <version>${download-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>biz.aQute.bnd</groupId>
+                    <artifactId>bnd-maven-plugin</artifactId>
+                    <version>${bnd-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.reficio</groupId>
+                    <artifactId>p2-maven-plugin</artifactId>
+                    <version>${p2-maven-plugin.version}</version>
+                </plugin>
+                <!--
+                  Not bound to any lifecycle phase; invoked ad hoc as
+                  "mvnw versions:set -DnewVersion=... -DprocessAllModules=true -DgenerateBackupPoms=false"
+                  by .github/workflows/release.yml to stamp the tagged version onto every module
+                  (including the <parent><version> reference in each child pom.xml) before a
+                  release build, without needing that version committed to the repo beforehand.
+                -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>${versions-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>
