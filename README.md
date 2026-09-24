@@ -72,11 +72,19 @@ Instead of downloading and extracting the zip, add that URL directly:
 - Add... → Add →
 - select `DBeaver Kubernetes Extensions` → `Next >` → `Finish` →
 - Authority / Update Site: check `https://nikvoronin.github.io` → `Trust Selected` →
-- Do you trust...: check `Unsigned` → `Trust Selected` →
+- Do you trust...: check the `Unsigned` Type → `Trust Selected` →
 - `Restart Now` restarts DBeaver.
 
 This site always reflects the latest published release (it is overwritten on every publish, not
 versioned), so it's best for staying current rather than pinning to a specific release.
+
+#### How to update
+
+- Help → Installation Information →
+- with `Ctrl`-key, select both components -UI and -Core → `Update` →
+- `Finish` →
+- Do you trust...: check the `Unsigned` Type → `Trust Selected` →
+- `Restart Now` to restart DBeaver and applying a new plugin version.
 
 ### From a GitHub release (no build required)
 
@@ -129,7 +137,7 @@ installation headlessly, via its console launcher:
 
 ```powershell
 # Close DBeaver first -- the script refuses to run while it's open.
-.\scripts\Install-DBeaverPlugin.ps1 -DBeaverHome C:\path\to\DBeaver
+.\scripts\Install-DBeaverPlugin.ps1 -DBeaverHome x:\path\to\DBeaver
 ```
 
 This builds the plugin (`mvnw.cmd clean verify`), generates a throwaway local p2 repository from
@@ -143,10 +151,10 @@ Other useful flags:
 
 ```powershell
 # Reinstall whatever's already built, without rebuilding:
-.\scripts\Install-DBeaverPlugin.ps1 -DBeaverHome C:\path\to\DBeaver -SkipBuild
+.\scripts\Install-DBeaverPlugin.ps1 -DBeaverHome x:\path\to\DBeaver -SkipBuild
 
 # Remove the plugin entirely:
-.\scripts\Install-DBeaverPlugin.ps1 -DBeaverHome C:\path\to\DBeaver -Uninstall
+.\scripts\Install-DBeaverPlugin.ps1 -DBeaverHome x:\path\to\DBeaver -Uninstall
 ```
 
 Once it succeeds, start DBeaver — "Kubernetes" should appear as a network handler on any
