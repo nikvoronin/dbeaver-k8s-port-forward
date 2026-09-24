@@ -21,12 +21,15 @@ import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Spinner;
 import org.eclipse.swt.widgets.Text;
 import io.github.nikvoronin.dbeaver.k8s.handler.KubernetesTunnelConstants;
+import io.github.nikvoronin.dbeaver.k8s.kubeconfig.KubeconfigReader;
+import io.github.nikvoronin.dbeaver.k8s.kubeconfig.KubeconfigSummary;
 import io.github.nikvoronin.dbeaver.k8s.tunnel.KubectlCommandBuilder;
 import io.github.nikvoronin.dbeaver.k8s.tunnel.KubernetesTunnelConfig;
 import org.jkiss.code.NotNull;
@@ -56,7 +59,9 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
     private Text kubectlPathText;
     private Text kubeconfigText;
     private Text contextText;
+    private Combo contextCombo;
     private Text namespaceText;
+    private Combo namespaceCombo;
     private Text resourceText;
     private Spinner remotePortSpinner;
     private Button automaticLocalPortCheckbox;
@@ -66,6 +71,7 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
     private Label testResultLabel;
 
     private Runnable propertyChangeListener;
+    private KubeconfigSummary kubeconfigSummary = KubeconfigSummary.EMPTY;
 
     @Override
     public void createControl(@NotNull Composite parent, Object object, @NotNull Runnable propertyChangeListener) {
@@ -77,10 +83,15 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         kubectlPathText = createBrowsableField(composite, "Kubectl executable", "Select kubectl executable", false);
         kubeconfigText = createBrowsableField(composite, "Kubeconfig", "Select kubeconfig file", false);
 
-        contextText = UIUtils.createLabelText(composite, "Context", "");
+        TextWithCombo contextField = createTextWithSuggestions(composite, "Context");
+        contextText = contextField.text();
+        contextCombo = contextField.combo();
         contextText.setToolTipText("kubeconfig context to use (blank = kubeconfig's current-context)");
 
-        namespaceText = UIUtils.createLabelText(composite, "Namespace", KubernetesTunnelConfig.DEFAULT_NAMESPACE);
+        TextWithCombo namespaceField = createTextWithSuggestions(composite, "Namespace");
+        namespaceText = namespaceField.text();
+        namespaceCombo = namespaceField.combo();
+        namespaceText.setText(KubernetesTunnelConfig.DEFAULT_NAMESPACE);
 
         resourceText = UIUtils.createLabelText(composite, "Resource", "");
         resourceText.setToolTipText("kubectl resource reference, e.g. svc/postgres, pod/postgres-0, deployment/postgres");
@@ -101,6 +112,58 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         createTestKubectlRow(composite);
 
         registerChangeListeners();
+        wireKubeconfigSuggestions();
+        refreshKubeconfigSuggestions();
+    }
+
+    private record TextWithCombo(Text text, Combo combo) {
+    }
+
+    private TextWithCombo createTextWithSuggestions(Composite parent, String label) {
+        UIUtils.createControlLabel(parent, label);
+
+        Composite row = UIUtils.createComposite(parent, 2);
+        row.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        Text text = new Text(row, SWT.BORDER);
+        text.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        Combo combo = new Combo(row, SWT.READ_ONLY | SWT.DROP_DOWN);
+        combo.setEnabled(false);
+        combo.setToolTipText("Loaded from kubeconfig, if available");
+
+        return new TextWithCombo(text, combo);
+    }
+
+    private void wireKubeconfigSuggestions() {
+        contextCombo.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+            String selected = contextCombo.getText();
+            contextText.setText(selected);
+            String namespaceForContext = kubeconfigSummary.namespaceByContext().get(selected);
+            if (namespaceForContext != null) {
+                namespaceText.setText(namespaceForContext);
+            }
+            propertyChangeListener.run();
+        }));
+
+        namespaceCombo.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+            namespaceText.setText(namespaceCombo.getText());
+            propertyChangeListener.run();
+        }));
+
+        kubeconfigText.addModifyListener(e -> refreshKubeconfigSuggestions());
+    }
+
+    private void refreshKubeconfigSuggestions() {
+        kubeconfigSummary = KubeconfigReader.read(kubeconfigText.getText().trim());
+        populateCombo(contextCombo, kubeconfigSummary.contextNames());
+        populateCombo(namespaceCombo, kubeconfigSummary.distinctNamespaces());
+    }
+
+    private static void populateCombo(Combo combo, List<String> items) {
+        combo.removeAll();
+        items.forEach(combo::add);
+        combo.setEnabled(!items.isEmpty());
     }
 
     private Text createBrowsableField(Composite parent, String label, String dialogTitle, boolean directory) {
@@ -258,6 +321,8 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         if (testResultLabel != null) {
             testResultLabel.setText("");
         }
+
+        refreshKubeconfigSuggestions();
     }
 
     @Override

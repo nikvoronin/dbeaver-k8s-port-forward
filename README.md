@@ -67,10 +67,13 @@ every time a release is published.
 
 Instead of downloading and extracting the zip, add that URL directly:
 
-- Help → Install New Software... → Add... →
-- this time paste the URL →
-- select "DBeaver Kubernetes Extensions" → Next → Finish →
-- restart DBeaver.
+- Help → Install New Software... →
+- Work with: `https://nikvoronin.github.io/dbeaver-k8s-port-forward/` (paste the URL) →
+- Add... → Add →
+- select `DBeaver Kubernetes Extensions` → `Next >` → `Finish` →
+- Authority / Update Site: check `https://nikvoronin.github.io` → `Trust Selected` →
+- Do you trust...: check `Unsigned` → `Trust Selected` →
+- `Restart Now` restarts DBeaver.
 
 This site always reflects the latest published release (it is overwritten on every publish, not
 versioned), so it's best for staying current rather than pinning to a specific release.
@@ -83,15 +86,14 @@ Each release carries a `dbeaver-k8s-port-forward_<tag>.zip` asset — the same p
 pre-built by CI (see `.github/workflows/release.yml`), so no JDK/Maven is needed to install it.
 
 1. Download `dbeaver-k8s-port-forward_<tag>.zip` from the release,
-2. Then extract it somewhere
-   (e.g. `x:\dbeaver-k8s-port-forward-repo\`).
+2. Then extract it somewhere (e.g. `x:\dbeaver-k8s-port-forward-repo\`).
 3. In DBeaver:
    - Help → Install New Software... → `Add...` → `Local...` →
    - select the extracted folder → `Add...` →
    - select "DBeaver Kubernetes Extensions" → `Next` →
-   - with Ctrl key, select both components -UI and -Core → `Finish` →
+   - review both components -UI and -Core → `Finish` →
    - Trust Artifacts: select Unsigned → `Trust Selected` →
-   - `Restart Now` – to restart DBeaver
+   - `Restart Now` – to restart DBeaver.
 
 #### Update to a newer release
 
@@ -157,8 +159,8 @@ launcher — untested by this project, which targets Windows).
 ## Uninstall
 
 - Help → Installation Information →
-- with Ctrl key, select both components -UI and -Core → `Uninstall...` →
-- `Finish` → `Restart`
+- with `Ctrl`-key, select both components -UI and -Core → `Uninstall...` →
+- `Finish` → `Restart Now` to restart DBeaver without plugin installed.
 
 ## Configuration
 

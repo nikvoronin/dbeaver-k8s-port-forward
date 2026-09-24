@@ -14,6 +14,9 @@ plugins/io.github.nikvoronin.dbeaver.k8s/            (core bundle — no SWT/JFa
   handler/
     KubernetesTunnelHandler      DBWTunnel implementation; the only class DBeaver talks to
     KubernetesTunnelConstants    DBWHandlerConfiguration property keys, shared with the UI module
+  kubeconfig/
+    KubeconfigReader             Resolves/parses a kubeconfig's contexts+namespaces (UI suggestions only)
+    KubeconfigSummary            Immutable result: context names and per-context namespaces
 
 plugins/io.github.nikvoronin.dbeaver.k8s.ui/         (UI bundle — SWT only)
   ui/
