@@ -22,6 +22,7 @@ flowchart LR
   - [From a GitHub release (no build required)](#from-a-github-release-no-build-required)
   - [Build from source](#build-from-source)
   - [Alternative: scripted install](#alternative-scripted-install-via-dbeavers-own-p2-director)
+- [Uninstall](#uninstall)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
 - [Lifecycle](#lifecycle)
@@ -48,8 +49,7 @@ implements its own auth, so anything your `kubectl` already supports (EKS, GKE, 
 
 ## Requirements
 
-- DBeaver Community Edition (built/tested against the `devel` branch at commit `fc2a972a`,
-  product version `26.2.2` — see [Compatibility](#compatibility) below).
+- DBeaver Community Edition (see [Compatibility](#compatibility) below).
 - A `kubectl` binary reachable by DBeaver (on `PATH`, or an absolute path configured in the
   handler).
 - A working kubeconfig with network access to the target Kubernetes API server.
@@ -61,38 +61,41 @@ implements its own auth, so anything your `kubectl` already supports (EKS, GKE, 
 
 ### Always-latest (no download)
 
-The p2 site is also hosted live at
-`https://nikvoronin.github.io/dbeaver-k8s-port-forward/`, rebuilt automatically by
-[`.github/workflows/publish-pages.yml`](./.github/workflows/publish-pages.yml) every time a
-release is published. Instead of downloading and extracting the zip, add that URL directly:
-Help → Install New Software... → Add... → this time paste the URL instead of browsing to a
-Local... folder → select "DBeaver Kubernetes Extensions" → Next → Finish → restart DBeaver.
+The p2 site is hosted live at <https://nikvoronin.github.io/dbeaver-k8s-port-forward/>,
+rebuilt automatically by [`.github/workflows/publish-pages.yml`](./.github/workflows/publish-pages.yml)
+every time a release is published.
+
+Instead of downloading and extracting the zip, add that URL directly:
+
+- Help → Install New Software... → Add... →
+- this time paste the URL →
+- select "DBeaver Kubernetes Extensions" → Next → Finish →
+- restart DBeaver.
+
 This site always reflects the latest published release (it is overwritten on every publish, not
 versioned), so it's best for staying current rather than pinning to a specific release.
 
 ### From a GitHub release (no build required)
 
 Published releases are at
-[github.com/nikvoronin/dbeaver-k8s-port-forward/releases](https://github.com/nikvoronin/dbeaver-k8s-port-forward/releases).
-Each release carries a `dbeaver-k8s-port-forward_<tag>.zip` asset — the same p2 site described
-below, pre-built by CI (see `.github/workflows/release.yml`), so no JDK/Maven is needed to
-install it.
+<https://github.com/nikvoronin/dbeaver-k8s-port-forward/releases>.
+Each release carries a `dbeaver-k8s-port-forward_<tag>.zip` asset — the same p2 site described below,
+pre-built by CI (see `.github/workflows/release.yml`), so no JDK/Maven is needed to install it.
 
 1. Download `dbeaver-k8s-port-forward_<tag>.zip` from the release,
-2. and extract it somewhere
-   (e.g. `C:\dbeaver-k8s-port-forward-repo\`).
+2. Then extract it somewhere
+   (e.g. `x:\dbeaver-k8s-port-forward-repo\`).
 3. In DBeaver:
-   - Help
-   - Install New Software...
-   - Add...
-   - Local...
-   - select the extracted folder
-   - select "DBeaver Kubernetes Extensions"
-   - Next
-   - Finish
-   - restart DBeaver
+   - Help → Install New Software... → `Add...` → `Local...` →
+   - select the extracted folder → `Add...` →
+   - select "DBeaver Kubernetes Extensions" → `Next` →
+   - with Ctrl key, select both components -UI and -Core → `Finish` →
+   - Trust Artifacts: select Unsigned → `Trust Selected` →
+   - `Restart Now` – to restart DBeaver
 
-**To update to a newer release:** download and extract the new release's zip (over the old
+#### Update to a newer release
+
+Download and extract the new release's zip (over the old
 folder, or a fresh one), then in DBeaver use **Help → Check for Updates** rather than reopening
 "Install New Software" — the latter is for a first install, not for picking up a newer version of
 something already installed. If DBeaver still doesn't offer the new version (p2 caches a local
@@ -150,6 +153,12 @@ script's own comment-based help (`Get-Help .\scripts\Install-DBeaverPlugin.ps1 -
 exact `dbeaverc.exe -application ...` commands it runs, if you want to replicate or adapt them
 (e.g. for Linux/macOS, via the `-Os`/`-Ws`/`-Arch` parameters and that platform's own `dbeaverc`
 launcher — untested by this project, which targets Windows).
+
+## Uninstall
+
+- Help → Installation Information →
+- with Ctrl key, select both components -UI and -Core → `Uninstall...` →
+- `Finish` → `Restart`
 
 ## Configuration
 
@@ -274,7 +283,7 @@ Wrapper downloads it on first use.
 This runs the full build: downloads the handful of `org.jkiss.dbeaver.*` bundles this plugin
 compiles against from DBeaver's own public p2 update site (`buildtools/dbeaver-deps`), compiles
 both plugin bundles, runs all unit tests (against a fake `kubectl` — no real cluster needed),
-packages both OSGi bundle jars, and generates the p2 install repository (see "Installation"
+packages both OSGi bundle jars, and generates the p2 install repository (see [Installation](#installation)
 above). See [docs/dbeaver-api-notes.md](./docs/dbeaver-api-notes.md) section 7 for why this is a plain Maven build rather than
 Tycho.
 
