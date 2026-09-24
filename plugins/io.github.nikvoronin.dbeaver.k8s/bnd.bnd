@@ -7,10 +7,11 @@ Bundle-RequiredExecutionEnvironment: JavaSE-21
 # KubernetesTunnelHandler itself is loaded purely via Eclipse's extension registry
 # (plugin.xml -> handlerClass), but the UI companion bundle
 # (io.github.nikvoronin.dbeaver.k8s.ui) genuinely imports KubernetesTunnelConstants,
-# KubernetesTunnelConfig and KubectlCommandBuilder at compile *and* OSGi run time (its "Test
-# kubectl" action reuses the real command builder), so both packages must be exported for that
-# Import-Package to resolve once both bundles are installed side by side.
-Export-Package: io.github.nikvoronin.dbeaver.k8s.tunnel, io.github.nikvoronin.dbeaver.k8s.handler
+# KubernetesTunnelConfig, KubectlCommandBuilder and KubeconfigReader/KubeconfigSummary at compile
+# *and* OSGi run time (its "Test kubectl" action reuses the real command builder, and its
+# settings panel reuses the kubeconfig reader for suggestion combos), so all these packages must
+# be exported for that Import-Package to resolve once both bundles are installed side by side.
+Export-Package: io.github.nikvoronin.dbeaver.k8s.tunnel, io.github.nikvoronin.dbeaver.k8s.handler, io.github.nikvoronin.dbeaver.k8s.kubeconfig
 
 # Computed automatically from the actual bytecode; only org.jkiss.dbeaver.model's packages and
 # org.eclipse.core.runtime (transitively required by DBRProgressMonitor) end up here.
