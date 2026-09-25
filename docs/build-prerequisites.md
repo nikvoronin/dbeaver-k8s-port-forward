@@ -26,6 +26,25 @@ Nothing else is required. In particular:
 - **No Eclipse Tycho / p2 target platform** — this project deliberately does not build with Tycho;
   see `docs/dbeaver-api-notes.md` section 7.
 
+## SWT dependency and cross-platform builds
+
+SWT is published to Maven Central as one artifact per OS/windowing-system/arch (e.g.
+`org.eclipse.swt.win32.win32.x86_64`, `org.eclipse.swt.gtk.linux.x86_64`,
+`org.eclipse.swt.cocoa.macosx.aarch64`), all at the same version. The root `pom.xml` picks the
+right one automatically via a `swt.artifactId` property, overridden by `<profiles>` activated on
+the build machine's detected OS/arch (Windows/Linux/macOS, x86_64/aarch64). This means `.\mvnw.cmd
+clean verify` (or `./mvnw`) compiles against the correct native SWT fragment on any of those
+machines without editing any pom.xml. For a combination the built-in profiles don't cover, pass it
+explicitly: `./mvnw clean verify -Dswt.artifactId=org.eclipse.swt.<ws>.<os>.<arch>`.
+
+This only affects what the `.ui` module compiles against — the SWT dependency is `provided`
+scope and never bundled into the produced jar, and the produced bundle's `Import-Package` for
+`org.eclipse.swt.*` carries no version constraint (verified against the actual published
+fragments). So a **single build's output is already cross-platform**: the same
+`repository/target/repository` p2 site installs and runs correctly in Windows, Linux, or macOS
+DBeaver, because it resolves against whatever SWT fragment the *target* DBeaver installation
+ships at runtime. There is no need to build or publish separate artifacts per OS/arch.
+
 ## Clean-machine checklist
 
 ```powershell

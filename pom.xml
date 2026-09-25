@@ -43,6 +43,17 @@
         <eclipse.platform.version>3.35.0</eclipse.platform.version>
         <eclipse.swt.version>3.135.0</eclipse.swt.version>
 
+        <!--
+          SWT is published as one Maven Central artifact per OS/windowing-system/arch, all at
+          the same eclipse.swt.version. The <profiles> below override this property to match the
+          build machine; this default covers Windows x86_64. This only affects what the .ui
+          module compiles against locally; the produced bundle's Import-Package carries no
+          SWT version constraint (verified against the actual published fragments), so a single
+          build already installs and runs on Windows/Linux/macOS DBeaver alike. See
+          docs/build-prerequisites.md.
+        -->
+        <swt.artifactId>org.eclipse.swt.win32.win32.x86_64</swt.artifactId>
+
         <junit.version>5.14.4</junit.version>
 
         <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
@@ -87,7 +98,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.platform</groupId>
-                <artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
+                <artifactId>${swt.artifactId}</artifactId>
                 <version>${eclipse.swt.version}</version>
             </dependency>
             <dependency>
@@ -152,4 +163,91 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <!--
+      Override swt.artifactId (default: org.eclipse.swt.win32.win32.x86_64, see the properties
+      section above) to compile against the SWT fragment matching the build machine. Only one
+      of these activates per build, based on the JVM-reported os.name/os.arch. Override manually
+      with -Dswt.artifactId=org.eclipse.swt.<ws>.<os>.<arch> for a combination not listed here.
+
+      os.arch values below were verified empirically (Windows amd64: this project's own dev
+      machine) and cross-checked against os-maven-plugin's Detector.java normalization table
+      (github.com/trustin/os-maven-plugin), which is the community-standard reference for raw
+      JVM os.arch strings: Windows/Linux x86_64 JVMs report "amd64"; macOS Intel JVMs report
+      "x86_64" (a different literal string, not just a formatting difference); aarch64 JVMs
+      (Windows on ARM, Linux ARM64, Apple Silicon) all report "aarch64" uniformly.
+
+      <family>unix</family> is deliberately NOT used to key the Linux profiles below: Maven's
+      built-in "unix" family (from plexus-utils' Os class) is also true on real macOS, since it's
+      derived from the OS's path/file-separator convention ('/'), which macOS shares with Linux,
+      not from the os.name text. Relying on it would make the Linux profiles' activation condition
+      overlap with macOS in principle (verified: <family>unix</family> alone does not exclude
+      macOS). <name>linux</name> is what actually discriminates Linux from macOS here, matched
+      case-insensitively against the exact os.name JVMs report on Linux ("Linux"); confirmed
+      empirically that this activates correctly and that a name with extra text (e.g. a kernel
+      version suffix) does NOT falsely match, since Maven's <name> comparison requires an exact
+      match, not a substring.
+    -->
+    <profiles>
+        <profile>
+            <id>swt-windows-aarch64</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <swt.artifactId>org.eclipse.swt.win32.win32.aarch64</swt.artifactId>
+            </properties>
+        </profile>
+        <profile>
+            <id>swt-linux-x86_64</id>
+            <activation>
+                <os>
+                    <name>linux</name>
+                    <arch>amd64</arch>
+                </os>
+            </activation>
+            <properties>
+                <swt.artifactId>org.eclipse.swt.gtk.linux.x86_64</swt.artifactId>
+            </properties>
+        </profile>
+        <profile>
+            <id>swt-linux-aarch64</id>
+            <activation>
+                <os>
+                    <name>linux</name>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <swt.artifactId>org.eclipse.swt.gtk.linux.aarch64</swt.artifactId>
+            </properties>
+        </profile>
+        <profile>
+            <id>swt-mac-x86_64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>x86_64</arch>
+                </os>
+            </activation>
+            <properties>
+                <swt.artifactId>org.eclipse.swt.cocoa.macosx.x86_64</swt.artifactId>
+            </properties>
+        </profile>
+        <profile>
+            <id>swt-mac-aarch64</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <swt.artifactId>org.eclipse.swt.cocoa.macosx.aarch64</swt.artifactId>
+            </properties>
+        </profile>
+    </profiles>
 </project>
