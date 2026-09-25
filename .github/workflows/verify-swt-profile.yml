@@ -1,0 +1,65 @@
+name: Verify SWT platform selection
+
+# pom.xml resolves swt.artifactId (which SWT Maven Central fragment the .ui module compiles
+# against) via <profiles> activated on the build machine's OS/arch -- see the comment above
+# <profiles> in pom.xml for the reasoning and the verified os.arch values this relies on. This
+# workflow is the only thing that actually exercises that activation logic on real Windows,
+# Linux and macOS runners (everything else was verified locally on Windows only, via -D
+# overrides, which can't fully simulate another OS's native os.name/file-separator behavior).
+#
+# This does not build or publish anything -- it only asserts the resolved property. The
+# distributed plugin remains a single, OS-agnostic p2 site (see docs/build-prerequisites.md);
+# this check exists purely so a future change to the profiles/pom can't silently break platform
+# selection without CI catching it.
+
+on:
+  push:
+    paths:
+      - "pom.xml"
+      - ".github/workflows/verify-swt-profile.yml"
+  pull_request:
+    paths:
+      - "pom.xml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # GitHub-hosted runner default architectures as of this writing: ubuntu-latest and
+          # windows-latest are x86_64; macos-latest is Apple Silicon (aarch64).
+          - os: ubuntu-latest
+            expected: org.eclipse.swt.gtk.linux.x86_64
+          - os: windows-latest
+            expected: org.eclipse.swt.win32.win32.x86_64
+          - os: macos-latest
+            expected: org.eclipse.swt.cocoa.macosx.aarch64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Resolve effective swt.artifactId and compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL=$(./mvnw --batch-mode -q help:evaluate -Dexpression=swt.artifactId -DforceStdout)
+          echo "runner os.name/os.arch:"
+          java -XshowSettings:properties -version 2>&1 | grep -E "os\.(name|arch) =" || true
+          echo "expected: ${{ matrix.expected }}"
+          echo "actual:   $ACTUAL"
+          if [ "$ACTUAL" != "${{ matrix.expected }}" ]; then
+            echo "::error::swt.artifactId mismatch on ${{ matrix.os }}: expected '${{ matrix.expected }}', got '$ACTUAL'"
+            exit 1
+          fi

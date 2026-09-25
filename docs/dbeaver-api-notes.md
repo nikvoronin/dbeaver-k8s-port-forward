@@ -289,11 +289,14 @@ Two public sources make a Tycho-free build possible instead:
    `org.eclipse.core.runtime`, `org.eclipse.ui.workbench`, ...) — those ship inside the
    DBeaver installer itself (bundled Eclipse delta pack), not through this update site.
 2. **The Eclipse Platform bundles DBeaver needs are separately published to Maven
-   Central** under groupId `org.eclipse.platform`, including `org.eclipse.swt`,
-   `org.eclipse.swt.win32.win32.x86_64`, `org.eclipse.jface`, `org.eclipse.core.runtime`,
-   `org.eclipse.equinox.common`, `org.eclipse.equinox.registry`, `org.eclipse.osgi`,
-   `org.eclipse.ui.workbench`, `org.eclipse.core.commands`, `org.eclipse.core.jobs`, and
-   more — plain jars, no p2 metadata needed to consume them from Maven.
+   Central** under groupId `org.eclipse.platform`, including `org.eclipse.swt` (one
+   platform-fragment artifact per OS/windowing-system/arch, e.g.
+   `org.eclipse.swt.win32.win32.x86_64` or `org.eclipse.swt.gtk.linux.x86_64` — see
+   `docs/build-prerequisites.md` for how this project selects the right one to compile
+   against), `org.eclipse.jface`, `org.eclipse.core.runtime`, `org.eclipse.equinox.common`,
+   `org.eclipse.equinox.registry`, `org.eclipse.osgi`, `org.eclipse.ui.workbench`,
+   `org.eclipse.core.commands`, `org.eclipse.core.jobs`, and more — plain jars, no p2
+   metadata needed to consume them from Maven.
 
 This plugin is built with **plain Apache Maven** (via Maven Wrapper, no Tycho, no p2
 resolution at build time), producing standard OSGi bundle jars with
