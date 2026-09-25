@@ -1,5 +1,7 @@
 # Kubernetes Port Forward for DBeaver Community
 
+![1790345839_beaver_rorschach_nso](https://github.com/user-attachments/assets/92bbd1d8-6a28-4eed-8947-e1740691ff32)
+
 ```mermaid
 flowchart LR
     A["DBeaver JDBC"]
