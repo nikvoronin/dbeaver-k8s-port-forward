@@ -1,0 +1,138 @@
+name: Check DBeaver p2 dependency pins
+
+# pom.xml pins org.jkiss.dbeaver.model/ui and org.jkiss.utils to an exact build qualifier
+# fetched from https://dbeaver.io/update/latest/plugins/, which only ever serves the latest
+# DBeaver build -- these pins will eventually 404 or drift behind what's published. This
+# workflow runs on a schedule and opens/closes a tracking issue instead of that only being
+# discovered when a real build (e.g. release.yml) happens to run after the site has moved on.
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-pins:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            pom.xml
+          sparse-checkout-cone-mode: false
+
+      - name: Compare pinned versions against the live p2 site
+        id: check
+        run: |
+          set -euo pipefail
+
+          BASE_URL=$(grep -oP '(?<=<dbeaver.p2.baseUrl>)[^<]+' pom.xml)
+          MODEL_PINNED=$(grep -oP '(?<=<dbeaver.model.version>)[^<]+' pom.xml)
+          UI_PINNED=$(grep -oP '(?<=<dbeaver.ui.version>)[^<]+' pom.xml)
+          UTILS_PINNED=$(grep -oP '(?<=<dbeaver.jkissutils.version>)[^<]+' pom.xml)
+
+          echo "Pinned: model=$MODEL_PINNED ui=$UI_PINNED utils=$UTILS_PINNED"
+          echo "Listing: $BASE_URL/"
+
+          LISTING=$(curl -sf "$BASE_URL/")
+
+          latest_version() {
+            # $1: jar name prefix, e.g. org.jkiss.dbeaver.model_
+            echo "$LISTING" \
+              | grep -oE "${1}[0-9][^\"]*\.jar" \
+              | sed -E "s/${1}(.*)\.jar/\1/" \
+              | sort -V | tail -1
+          }
+
+          MODEL_LATEST=$(latest_version 'org\.jkiss\.dbeaver\.model_')
+          UI_LATEST=$(latest_version 'org\.jkiss\.dbeaver\.ui_')
+          UTILS_LATEST=$(latest_version 'org\.jkiss\.utils_')
+
+          echo "Latest published: model=$MODEL_LATEST ui=$UI_LATEST utils=$UTILS_LATEST"
+
+          pin_status() {
+            # $1: jar name prefix, $2: pinned version
+            local url="$BASE_URL/${1}${2}.jar"
+            if curl -sf -o /dev/null "$url"; then
+              echo "reachable"
+            else
+              echo "404"
+            fi
+          }
+
+          MODEL_STATUS=$(pin_status 'org.jkiss.dbeaver.model_' "$MODEL_PINNED")
+          UI_STATUS=$(pin_status 'org.jkiss.dbeaver.ui_' "$UI_PINNED")
+          UTILS_STATUS=$(pin_status 'org.jkiss.utils_' "$UTILS_PINNED")
+
+          echo "Pin reachability: model=$MODEL_STATUS ui=$UI_STATUS utils=$UTILS_STATUS"
+
+          DRIFT=false
+          if [ "$MODEL_PINNED" != "$MODEL_LATEST" ] || [ "$MODEL_STATUS" = "404" ]; then DRIFT=true; fi
+          if [ "$UI_PINNED" != "$UI_LATEST" ] || [ "$UI_STATUS" = "404" ]; then DRIFT=true; fi
+          if [ "$UTILS_PINNED" != "$UTILS_LATEST" ] || [ "$UTILS_STATUS" = "404" ]; then DRIFT=true; fi
+
+          {
+            echo "drift=$DRIFT"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "body<<EOF"
+            echo "The DBeaver p2 dependency pins in \`pom.xml\` have drifted from what's"
+            echo "currently published at \`$BASE_URL/\`, or one of the pinned jars is no"
+            echo "longer reachable there."
+            echo
+            echo "| Dependency | Pinned | Latest published | Pinned URL |"
+            echo "|---|---|---|---|"
+            echo "| \`org.jkiss.dbeaver.model\` | \`$MODEL_PINNED\` | \`$MODEL_LATEST\` | $MODEL_STATUS |"
+            echo "| \`org.jkiss.dbeaver.ui\` | \`$UI_PINNED\` | \`$UI_LATEST\` | $UI_STATUS |"
+            echo "| \`org.jkiss.utils\` | \`$UTILS_PINNED\` | \`$UTILS_LATEST\` | $UTILS_STATUS |"
+            echo
+            echo "Update the pinned properties in \`pom.xml\`:"
+            echo '```xml'
+            echo "<dbeaver.model.version>$MODEL_LATEST</dbeaver.model.version>"
+            echo "<dbeaver.ui.version>$UI_LATEST</dbeaver.ui.version>"
+            echo "<dbeaver.jkissutils.version>$UTILS_LATEST</dbeaver.jkissutils.version>"
+            echo '```'
+            echo
+            echo "(Opened automatically by \`.github/workflows/check-dbeaver-deps.yml\`.)"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open or update tracking issue
+        if: steps.check.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BODY: ${{ steps.check.outputs.body }}
+        run: |
+          set -euo pipefail
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" \
+            --search 'in:title "DBeaver p2 pins" is:open' \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "${{ github.repository }}" --body "$BODY"
+          else
+            gh issue create --repo "${{ github.repository }}" \
+              --title "DBeaver p2 pins are stale" \
+              --body "$BODY"
+          fi
+
+      - name: Close tracking issue if pins are back in sync
+        if: steps.check.outputs.drift == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" \
+            --search 'in:title "DBeaver p2 pins" is:open' \
+            --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" --repo "${{ github.repository }}" \
+              --comment "Pins now match the latest published DBeaver p2 build. Closing automatically."
+          fi
