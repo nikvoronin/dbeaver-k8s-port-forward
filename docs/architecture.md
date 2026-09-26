@@ -129,9 +129,10 @@ this boundary relies on, and section 8 there for compatibility risk.
 ## Not implemented in v1 (by design)
 
 - **Automatic reconnection.** `invalidateHandler()` only detects that the kubectl process has
-  died (via `isRunning()`) and raises an actionable `DBException` — DBeaver's own reconnect flow
-  (creating a fresh handler instance and calling `initializeHandler()` again) is what actually
-  re-establishes the tunnel. Automatic reconnection/recovery is intentionally out of scope; this
+  died (via `isRunning()`) and raises an actionable `DBException` — a full **Disconnect, then
+  Connect** (creating a fresh handler instance and calling `initializeHandler()` again) is what
+  actually re-establishes the tunnel; DBeaver's **Invalidate/Reconnect** action does *not* — see
+  the next section for why. Automatic reconnection/recovery is intentionally out of scope; this
   keeps the state machine trivial to reason about (a tunnel is either up or it is not).
 - **Optional post-readiness TCP probe.** An extra "connect a raw socket to confirm readiness"
   check after kubectl's own "Forwarding from" line was considered and left out. kubectl only
@@ -141,3 +142,48 @@ this boundary relies on, and section 8 there for compatibility risk.
 - **`DBWForwarder.matchesParameters`** always returns `false` — see `docs/dbeaver-api-notes.md`
   section 8 for why the SSH/SOCKS host:port-matching heuristic doesn't apply to a
   `(context, namespace, resource, port)`-addressed tunnel.
+
+## Why Invalidate/Reconnect can't restart the tunnel (and what full auto-reconnect would require)
+
+Traced directly against DBeaver Community source (`.reference/dbeaver`), not assumed:
+
+- `InvalidateJob.invalidateNetworkHandlers()`
+  (`org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/runtime/jobs/InvalidateJob.java`) calls
+  `invalidateHandler()` purely as a liveness check. On exception it just records a
+  `ContextInvalidateResult` error — it never calls `closeTunnel`/`initializeHandler`.
+- A tunnel is only ever (re)created inside `DataSourceDescriptor.connect0()` →
+  `initTunnelHandler()` → `tunnelHandler.initializeHandler(...)`
+  (`org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/DataSourceDescriptor.java`,
+  around lines 1194-1300) — i.e. only on a full reconnect of the whole `DataSourceDescriptor`
+  (Disconnect, then Connect), never during Invalidate/Reconnect.
+- Even the JDBC-level reopen Invalidate/Reconnect *does* perform
+  (`JDBCExecutionContext.invalidateContext()`'s `INVALIDATE` phase, which calls `connect(...)`
+  again) targets the same local port resolved during the original `initializeHandler()` call — so
+  it would fail regardless, on top of network-handler invalidation already aborting first.
+
+**Why DBeaver's own SSH tunnel doesn't have this problem:** `SSHTunnelImpl.invalidateHandler()` →
+`AbstractSessionController.invalidate()` genuinely reconnects on `INVALIDATE`
+(`delegate.connect(monitor, delegate.destination, configuration)`), because the SSH library binds
+the local forwarded port as a socket living inside DBeaver's own JVM, independent of the SSH
+session underneath it — the session can drop and reconnect while that already-bound socket keeps
+listening the whole time. Our tunnel's local port is instead owned entirely by the external
+`kubectl` process; when it dies, the OS reclaims the port immediately, so there is no
+"reconnect the session, keep the socket" option available within the same
+shell-out-to-`kubectl` design.
+
+**What it would take to actually close this**, in increasing order of scope:
+
+1. **Partial fix, same architecture.** Mirror SSH's phase split in `invalidateHandler()`:
+   on `BEFORE_INVALIDATE`, release the dead tunnel's resources; on `INVALIDATE`, attempt
+   `KubectlPortForwardTunnel.start(...)` again with the same config. This only works when
+   "Local port" is a fixed value (not "Automatic", the default) — a restarted kubectl process
+   choosing a *different* ephemeral port can't be reconciled with the JDBC connection info
+   DBeaver already resolved once, and `DBWTunnel` exposes no hook to update that after the fact.
+   Would also need new tests for `KubernetesTunnelHandler` (currently has none — see
+   `docs/architecture.md`'s own class list above; only the `tunnel` package is unit-tested today).
+2. **Full fix.** Match SSH's approach exactly: have the plugin own the local listening socket
+   itself (e.g. via a Kubernetes client library speaking the portforward API directly) instead of
+   shelling out to `kubectl`, so a dropped connection can be transparently re-established without
+   the port ever changing. This directly conflicts with this project's deliberate "no bundled
+   Kubernetes client library — everything goes through the user's own kubectl/kubeconfig" choice
+   (README "Security" section), so it's an architecture change, not a bug fix, and isn't planned.
