@@ -33,14 +33,18 @@ import io.github.nikvoronin.dbeaver.k8s.kubeconfig.KubeconfigSummary;
 import io.github.nikvoronin.dbeaver.k8s.tunnel.KubectlCommandBuilder;
 import io.github.nikvoronin.dbeaver.k8s.tunnel.KubernetesTunnelConfig;
 import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.model.connection.DBPDriver;
 import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
+import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
 import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -64,6 +68,7 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
     private Combo namespaceCombo;
     private Text resourceText;
     private Spinner remotePortSpinner;
+    private Combo remotePortCombo;
     private Button automaticLocalPortCheckbox;
     private Spinner localPortSpinner;
     private Text bindAddressText;
@@ -72,6 +77,7 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
 
     private Runnable propertyChangeListener;
     private KubeconfigSummary kubeconfigSummary = KubeconfigSummary.EMPTY;
+    private List<DriverPortOption> driverPortOptions = List.of();
 
     @Override
     public void createControl(@NotNull Composite parent, Object object, @NotNull Runnable propertyChangeListener) {
@@ -96,8 +102,7 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         resourceText = UIUtils.createLabelText(composite, "Resource", "");
         resourceText.setToolTipText("kubectl resource reference, e.g. svc/postgres, pod/postgres-0, deployment/postgres");
 
-        remotePortSpinner = UIUtils.createLabelSpinner(composite, "Remote port", 0, 1, 65535);
-        remotePortSpinner.setToolTipText("Port exposed by the resource inside the cluster (blank/0 = use the connection's own port)");
+        createRemotePortRow(composite);
 
         createLocalPortRow(composite);
 
@@ -185,6 +190,75 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         }));
 
         return text;
+    }
+
+    private record DriverPortOption(String label, int port) {
+    }
+
+    private static final String SELECT_DB_TYPE_PLACEHOLDER = "Select database type…";
+
+    private void createRemotePortRow(Composite parent) {
+        UIUtils.createControlLabel(parent, "Remote port");
+
+        Composite row = UIUtils.createComposite(parent, 3);
+        row.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        remotePortSpinner = new Spinner(row, SWT.BORDER);
+        remotePortSpinner.setMinimum(1);
+        remotePortSpinner.setMaximum(65535);
+        remotePortSpinner.setSelection(0);
+        remotePortSpinner.setToolTipText("Port exposed by the resource inside the cluster (blank/0 = use the connection's own port)");
+        remotePortSpinner.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING));
+
+        Label suggestLabel = new Label(row, SWT.NONE);
+        suggestLabel.setText("Suggest:");
+        GridData suggestLabelData = new GridData();
+        suggestLabelData.horizontalIndent = 10;
+        suggestLabel.setLayoutData(suggestLabelData);
+
+        remotePortCombo = new Combo(row, SWT.READ_ONLY | SWT.DROP_DOWN);
+        remotePortCombo.setToolTipText("Default port of a database type installed in this DBeaver");
+        populateDefaultPortCombo();
+
+        remotePortCombo.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+            int optionIndex = remotePortCombo.getSelectionIndex() - 1;
+            if (optionIndex >= 0 && optionIndex < driverPortOptions.size()) {
+                remotePortSpinner.setSelection(driverPortOptions.get(optionIndex).port());
+                propertyChangeListener.run();
+            }
+        }));
+    }
+
+    private void populateDefaultPortCombo() {
+        driverPortOptions = DBWorkbench.getPlatform().getDataSourceProviderRegistry().getEnabledDataSourceProviders().stream()
+            .flatMap(provider -> provider.getEnabledDrivers().stream())
+            .map(KubernetesTunnelConfiguratorUI::toDriverPortOption)
+            .filter(Objects::nonNull)
+            .distinct()
+            .sorted(Comparator.comparing(DriverPortOption::label, String.CASE_INSENSITIVE_ORDER))
+            .toList();
+
+        remotePortCombo.add(SELECT_DB_TYPE_PLACEHOLDER);
+        driverPortOptions.forEach(option -> remotePortCombo.add(option.label()));
+        remotePortCombo.select(0);
+        remotePortCombo.setEnabled(!driverPortOptions.isEmpty());
+    }
+
+    private static DriverPortOption toDriverPortOption(DBPDriver driver) {
+        String portText = driver.getDefaultPort();
+        if (portText == null || portText.isBlank()) {
+            return null;
+        }
+        int port;
+        try {
+            port = Integer.parseInt(portText.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        if (port < 1 || port > 65535) {
+            return null;
+        }
+        return new DriverPortOption(driver.getName() + ": " + port, port);
     }
 
     private void createLocalPortRow(Composite parent) {
