@@ -127,11 +127,14 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
     private TextWithCombo createTextWithSuggestions(Composite parent, String label) {
         UIUtils.createControlLabel(parent, label);
 
-        Composite row = UIUtils.createComposite(parent, 2);
+        Composite row = UIUtils.createComposite(parent, 3);
         row.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
         Text text = new Text(row, SWT.BORDER);
         text.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        Label suggestLabel = new Label(row, SWT.NONE);
+        suggestLabel.setText("<<");
 
         Combo combo = new Combo(row, SWT.READ_ONLY | SWT.DROP_DOWN);
         combo.setEnabled(false);
@@ -211,9 +214,8 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         remotePortSpinner.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING));
 
         Label suggestLabel = new Label(row, SWT.NONE);
-        suggestLabel.setText("Suggest:");
+        suggestLabel.setText("<<");
         GridData suggestLabelData = new GridData();
-        suggestLabelData.horizontalIndent = 10;
         suggestLabel.setLayoutData(suggestLabelData);
 
         remotePortCombo = new Combo(row, SWT.READ_ONLY | SWT.DROP_DOWN);
