@@ -52,6 +52,8 @@ implements its own auth, so anything your `kubectl` already supports (EKS, GKE, 
 ## Requirements
 
 - DBeaver Community Edition (see [Compatibility](#compatibility) below).
+- Works on Windows, macOS, and Linux (see [Compatibility](#compatibility) for what's been
+  manually verified on each).
 - A `kubectl` binary reachable by DBeaver (on `PATH`, or an absolute path configured in the
   handler).
 - A working kubeconfig with network access to the target Kubernetes API server.
@@ -191,6 +193,10 @@ startup timeout:    15
 Tick the tab's own checkbox to enable the handler (DBeaver draws that on the tab itself, not
 inside this plugin's panel).
 
+**macOS:** if DBeaver doesn't find `kubectl` on `PATH` automatically, open a terminal and run
+`which kubectl` to get its absolute path, then paste that into `Kubectl executable`, e.g.
+`Kubectl executable: /usr/local/bin/kubectl`.
+
 ### PostgreSQL example
 
 ```text
@@ -316,16 +322,18 @@ DBeaver APIs this plugin uses (`DBWNetworkHandler`, `DBWTunnel`, `DBWForwarder`,
 `DBWHandlerConfiguration`, `IObjectPropertyConfigurator`) are the same public extension points
 DBeaver's own built-in SSH and SOCKS proxy handlers use — see [docs/dbeaver-api-notes.md](./docs/dbeaver-api-notes.md) section 8 for the specific compatibility/versioning risks and which packages would need re-review after a DBeaver upgrade.
 
-**Manually verified** installed and running inside a real DBeaver `26.2.1.202609210342` desktop
-install (Windows, self-updated from a `26.1.0` base install) via the p2 director method above:
-the "Kubernetes" tab renders with a populated settings panel, saved settings round-trip
-correctly, and attempting to connect actually launches real `kubectl port-forward`, whose
-real-cluster error output (`Error from server (NotFound): ...`) is surfaced verbatim in DBeaver's
-own error log through this plugin's `PortForwardException` — confirming the full
-handler → `ProcessBuilder` → kubectl → DBeaver error-reporting path works end-to-end, not just in
-the unit tests. A full successful *connection* (tunnel ready, JDBC connected) was not observed in
-this manual check — see [docs/integration-test.md](./docs/integration-test.md) for the documented procedure to complete that
-with a real, reachable Kubernetes Service.
+**Manually verified end-to-end** inside a real DBeaver `26.2.1.202609210342` desktop install
+(Windows 11, self-updated from a `26.1.0` base install) via the p2 director method above: the
+"Kubernetes" tab renders with a populated settings panel, saved settings round-trip correctly,
+and connecting actually launches real `kubectl port-forward`, reaches ready, and DBeaver
+successfully connects to the target database through the forwarded port — confirming the full
+handler → `ProcessBuilder` → kubectl → JDBC path works end-to-end, not just in the unit tests.
+See [docs/integration-test.md](./docs/integration-test.md) for the manual test procedure this followed, including Kubernetes
+manifests for a disposable workload.
+
+**Also manually verified end-to-end** inside a real DBeaver `26.2.1` desktop install on
+**macOS Sequoia**: same result — the tunnel reaches ready, and DBeaver successfully connects to
+the target database through the forwarded port. Linux has not been manually tested.
 
 ## License
 
