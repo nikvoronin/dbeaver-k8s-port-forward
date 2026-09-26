@@ -193,9 +193,10 @@ startup timeout:    15
 Tick the tab's own checkbox to enable the handler (DBeaver draws that on the tab itself, not
 inside this plugin's panel).
 
-**macOS:** if DBeaver doesn't find `kubectl` on `PATH` automatically, open a terminal and run
-`which kubectl` to get its absolute path, then paste that into `Kubectl executable`, e.g.
-`Kubectl executable: /usr/local/bin/kubectl`.
+> [!TIP]
+> **macOS:** if DBeaver doesn't find `kubectl` on `PATH` automatically, open a terminal and run
+> `which kubectl` to get its absolute path, then paste that into `Kubectl executable`,
+> e.g. `Kubectl executable: /usr/local/bin/kubectl`.
 
 ### PostgreSQL example
 
