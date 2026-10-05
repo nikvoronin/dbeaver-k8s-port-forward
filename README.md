@@ -41,6 +41,8 @@ When you connect a DBeaver connection with the Kubernetes handler enabled:
 3. it discovers the local port kubectl picked;
 4. DBeaver then connects its JDBC driver to `127.0.0.1:<that port>` instead of the original host.
 
+![dbeaver-k8s_dropdown-tunnel-selector](https://github.com/user-attachments/assets/2ca76e5e-a0e7-4d8a-a2fd-89c5b199f773)
+
 When the connection is closed (or fails), the corresponding `kubectl` process is terminated and
 no state is left behind. Every connection gets its own independent tunnel and local port, so
 multiple simultaneous connections (e.g. dev/stage/prod) never interfere with each other.
@@ -176,6 +178,8 @@ launcher — untested by this project, which targets Windows).
 
 ## Configuration
 
+Select the Kubernetes tunnel from the `➕ combo selector`, alongside "SSH" and "Proxy".
+
 On a connection's "Kubernetes" tab:
 
 ```text
@@ -190,8 +194,7 @@ bind address:       127.0.0.1
 startup timeout:    15
 ```
 
-Tick the tab's own checkbox to enable the handler (DBeaver draws that on the tab itself, not
-inside this plugin's panel).
+![dbeaver-k8s_db-connection-tunnel-settings](https://github.com/user-attachments/assets/f13af75c-d47b-4ed3-a1af-fb53e7da3412)
 
 > [!TIP]
 > **macOS:** if DBeaver doesn't find `kubectl` on `PATH` automatically, open a terminal and run
