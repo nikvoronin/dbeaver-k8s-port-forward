@@ -180,6 +180,8 @@ launcher — untested by this project, which targets Windows).
 
 Select the Kubernetes tunnel from the `➕ combo selector`, alongside "SSH" and "Proxy".
 
+![dbeaver-k8s_dropdown-tunnel-selector](https://github.com/user-attachments/assets/2ca76e5e-a0e7-4d8a-a2fd-89c5b199f773)
+
 On a connection's "Kubernetes" tab:
 
 ```text
