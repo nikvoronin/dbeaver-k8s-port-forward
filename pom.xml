@@ -35,9 +35,9 @@
           whatever is currently published there.
         -->
         <dbeaver.p2.baseUrl>https://dbeaver.io/update/latest/plugins</dbeaver.p2.baseUrl>
-        <dbeaver.model.version>2.0.47.202609210342</dbeaver.model.version>
-        <dbeaver.ui.version>5.1.202.202609210342</dbeaver.ui.version>
-        <dbeaver.jkissutils.version>2.9.0.202609210342</dbeaver.jkissutils.version>
+        <dbeaver.model.version>2.0.48.202610041844</dbeaver.model.version>
+        <dbeaver.ui.version>5.1.203.202610041844</dbeaver.ui.version>
+        <dbeaver.jkissutils.version>2.9.0.202610041844</dbeaver.jkissutils.version>
 
         <!-- Eclipse Platform bundles are published to Maven Central under this groupId. -->
         <eclipse.platform.version>3.35.0</eclipse.platform.version>
