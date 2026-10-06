@@ -87,20 +87,29 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         composite.setLayoutData(new GridData(GridData.FILL_BOTH));
 
         kubectlPathText = createBrowsableField(composite, "Kubectl executable", "Select kubectl executable", false);
+        kubectlPathText.setToolTipText("Path to the kubectl executable (blank = kubectl from PATH)");
+        kubectlPathText.setMessage(KubernetesTunnelConfig.DEFAULT_KUBECTL_EXECUTABLE);
+
         kubeconfigText = createBrowsableField(composite, "Kubeconfig", "Select kubeconfig file", false);
+        kubeconfigText.setToolTipText("kubeconfig file to use (blank = kubectl's default: KUBECONFIG or ~/.kube/config)");
+        kubeconfigText.setMessage("~/.kube/config");
 
         TextWithCombo contextField = createTextWithSuggestions(composite, "Context");
         contextText = contextField.text();
         contextCombo = contextField.combo();
         contextText.setToolTipText("kubeconfig context to use (blank = kubeconfig's current-context)");
+        contextText.setMessage("current-context");
 
         TextWithCombo namespaceField = createTextWithSuggestions(composite, "Namespace");
         namespaceText = namespaceField.text();
         namespaceCombo = namespaceField.combo();
         namespaceText.setText(KubernetesTunnelConfig.DEFAULT_NAMESPACE);
+        namespaceText.setToolTipText("Kubernetes namespace of the resource (blank = " + KubernetesTunnelConfig.DEFAULT_NAMESPACE + ")");
+        namespaceText.setMessage(KubernetesTunnelConfig.DEFAULT_NAMESPACE);
 
         resourceText = UIUtils.createLabelText(composite, "Resource", "");
         resourceText.setToolTipText("kubectl resource reference, e.g. svc/postgres, pod/postgres-0, deployment/postgres");
+        resourceText.setMessage("svc/postgres");
 
         createRemotePortRow(composite);
 
@@ -110,9 +119,11 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         bindAddressText.setToolTipText(
             "Local address to bind. Keep 127.0.0.1 unless you specifically need other hosts to reach the "
                 + "forwarded port — a non-loopback address exposes the database to your network.");
+        bindAddressText.setMessage(KubernetesTunnelConfig.DEFAULT_BIND_ADDRESS);
 
         startupTimeoutSpinner = UIUtils.createLabelSpinner(
             composite, "Startup timeout (seconds)", (int) KubernetesTunnelConfig.DEFAULT_STARTUP_TIMEOUT.toSeconds(), 1, 600);
+        startupTimeoutSpinner.setToolTipText("How long to wait for kubectl port-forward to become ready before failing the connection");
 
         createTestKubectlRow(composite);
 
@@ -274,9 +285,11 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         localPortSpinner.setMaximum(65535);
         localPortSpinner.setSelection(1);
         localPortSpinner.setEnabled(false);
+        localPortSpinner.setToolTipText("Fixed local port to listen on (available when Automatic is unchecked)");
         localPortSpinner.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING));
 
         automaticLocalPortCheckbox = UIUtils.createCheckbox(row, "Automatic", true);
+        automaticLocalPortCheckbox.setToolTipText("Let the OS pick a free local port on every connect");
 
         automaticLocalPortCheckbox.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
             localPortSpinner.setEnabled(!automaticLocalPortCheckbox.getSelection());
@@ -290,8 +303,9 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         Composite row = UIUtils.createComposite(parent, 2);
         row.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-        UIUtils.createPushButton(row, "Test kubectl", null,
+        Button testButton = UIUtils.createPushButton(row, "Test kubectl", null,
             SelectionListener.widgetSelectedAdapter(e -> testKubectl()));
+        testButton.setToolTipText("Run 'kubectl version --client' using the executable path above");
 
         testResultLabel = new Label(row, SWT.NONE);
         testResultLabel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
