@@ -103,6 +103,42 @@ public final class KubernetesTunnelConfig {
         return new Builder();
     }
 
+    /**
+     * {@code true} if every entry of {@code bindAddress} (kubectl's {@code --address} accepts a
+     * comma-separated list) is a loopback address, or if it is blank (which falls back to
+     * {@link #DEFAULT_BIND_ADDRESS}). Purely textual: never resolves hostnames, so it is cheap
+     * and safe to call from the UI thread.
+     */
+    public static boolean isLoopbackBindAddress(String bindAddress) {
+        if (bindAddress == null || bindAddress.isBlank()) {
+            return true;
+        }
+        for (String entry : bindAddress.split(",", -1)) {
+            if (!isLoopbackEntry(entry.trim())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isLoopbackEntry(String entry) {
+        if (entry.equalsIgnoreCase("localhost")
+            || entry.equals("::1") || entry.equals("[::1]") || entry.equals("0:0:0:0:0:0:0:1")) {
+            return true;
+        }
+        String[] octets = entry.split("\\.", -1);
+        if (octets.length != 4 || !octets[0].equals("127")) {
+            return false;
+        }
+        for (String octet : octets) {
+            if (octet.isEmpty() || octet.length() > 3 || !octet.chars().allMatch(c -> c >= '0' && c <= '9')
+                || Integer.parseInt(octet) > 255) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Override
     public String toString() {
         // Deliberately omits kubeconfigPath contents beyond the path itself: the path is not
