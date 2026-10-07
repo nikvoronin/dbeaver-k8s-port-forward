@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,6 +42,24 @@ class KubernetesTunnelConfigTest {
         assertTrue(config.isLocalPortAutomatic());
         assertEquals(null, config.getKubeconfigPath());
         assertEquals(null, config.getContext());
+    }
+
+    @Test
+    void loopbackBindAddressesAreRecognised() {
+        for (String address : new String[] {
+            null, "", "  ", "127.0.0.1", "127.1.2.3", "localhost", "LOCALHOST", "::1", "[::1]",
+            "0:0:0:0:0:0:0:1", " localhost , 127.0.0.1 "}) {
+            assertTrue(KubernetesTunnelConfig.isLoopbackBindAddress(address), "expected loopback: '" + address + "'");
+        }
+    }
+
+    @Test
+    void nonLoopbackBindAddressesAreRecognised() {
+        for (String address : new String[] {
+            "0.0.0.0", "192.168.1.5", "::", "127.0.0.1,0.0.0.0", "127.0.0", "127.0.0.256", "127.0.0.x",
+            "128.0.0.1", "example.com", "localhost,", ",127.0.0.1"}) {
+            assertFalse(KubernetesTunnelConfig.isLoopbackBindAddress(address), "expected non-loopback: '" + address + "'");
+        }
     }
 
     @Test

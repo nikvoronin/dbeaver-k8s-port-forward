@@ -72,6 +72,8 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
     private Button automaticLocalPortCheckbox;
     private Spinner localPortSpinner;
     private Text bindAddressText;
+    private Label bindAddressWarningSpacer;
+    private Label bindAddressWarningLabel;
     private Spinner startupTimeoutSpinner;
     private Label testResultLabel;
 
@@ -121,6 +123,15 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
                 + "forwarded port — a non-loopback address exposes the database to your network.");
         bindAddressText.setMessage(KubernetesTunnelConfig.DEFAULT_BIND_ADDRESS);
 
+        // Own row directly below the input: empty cell under the label, warning under the text field.
+        bindAddressWarningSpacer = new Label(composite, SWT.NONE);
+        bindAddressWarningSpacer.setLayoutData(new GridData());
+        bindAddressWarningLabel = new Label(composite, SWT.NONE);
+        bindAddressWarningLabel.setText(BIND_ADDRESS_WARNING);
+        bindAddressWarningLabel.setForeground(composite.getDisplay().getSystemColor(SWT.COLOR_RED));
+        bindAddressWarningLabel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        updateBindAddressWarning();
+
         startupTimeoutSpinner = UIUtils.createLabelSpinner(
             composite, "Startup timeout (seconds)", (int) KubernetesTunnelConfig.DEFAULT_STARTUP_TIMEOUT.toSeconds(), 1, 600);
         startupTimeoutSpinner.setToolTipText("How long to wait for kubectl port-forward to become ready before failing the connection");
@@ -133,6 +144,15 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
     }
 
     private record TextWithCombo(Text text, Combo combo) {
+    }
+
+    private void updateBindAddressWarning() {
+        boolean warn = !KubernetesTunnelConfig.isLoopbackBindAddress(bindAddressText.getText());
+        for (Label label : new Label[] {bindAddressWarningSpacer, bindAddressWarningLabel}) {
+            label.setVisible(warn);
+            ((GridData) label.getLayoutData()).exclude = !warn;
+        }
+        bindAddressWarningLabel.getParent().requestLayout();
     }
 
     private TextWithCombo createTextWithSuggestions(Composite parent, String label) {
@@ -210,6 +230,7 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
     }
 
     private static final String SELECT_DB_TYPE_PLACEHOLDER = "Select database type…";
+    private static final String BIND_ADDRESS_WARNING = "* A non-loopback address exposes the database to your network";
 
     private void createRemotePortRow(Composite parent) {
         UIUtils.createControlLabel(parent, "Remote port");
@@ -380,6 +401,7 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
         remotePortSpinner.addModifyListener(modifyListener);
         localPortSpinner.addModifyListener(modifyListener);
         bindAddressText.addModifyListener(modifyListener);
+        bindAddressText.addModifyListener(e -> updateBindAddressWarning());
         startupTimeoutSpinner.addModifyListener(modifyListener);
     }
 
@@ -403,6 +425,7 @@ public class KubernetesTunnelConfiguratorUI implements IObjectPropertyConfigurat
 
         bindAddressText.setText(orDefault(
             configuration.getStringProperty(KubernetesTunnelConstants.PROP_BIND_ADDRESS), KubernetesTunnelConfig.DEFAULT_BIND_ADDRESS));
+        updateBindAddressWarning();
 
         int timeout = configuration.getIntProperty(
             KubernetesTunnelConstants.PROP_STARTUP_TIMEOUT, KubernetesTunnelConstants.DEFAULT_STARTUP_TIMEOUT_SECONDS);
