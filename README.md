@@ -268,17 +268,83 @@ points/classes this plugin relies on (traced against the DBeaver Community sourc
 
 ## Security
 
-- The forwarded port defaults to binding **127.0.0.1 only** — never `0.0.0.0`. If you explicitly
-  configure a non-loopback bind address, the forwarded database port becomes reachable by other
-  hosts on whatever network can reach that address; only do this if you specifically need it.
-- All configuration values are passed to `kubectl` as a `ProcessBuilder` argument list — never
+This is a third-party plugin that runs inside DBeaver and launches an external program, so it is
+reasonable to want to check it before installing. This section lists what the plugin does and
+does not do, what to be aware of, and how to verify it yourself. The whole runtime code base is
+two small OSGi bundles (about 1.4k lines of Java) and is meant to be easy to read.
+
+### What the plugin does
+
+- **One external process, no shell.** The only process it ever starts is `kubectl`:
+  `kubectl port-forward ...` on connect and `kubectl version --client` for the **Test kubectl**
+  button. Every configuration value is passed as a `ProcessBuilder` argument list — never
   concatenated into or interpreted by a shell (`sh -c`, `cmd.exe /c`, `powershell -Command`, ...),
   so there is no shell-injection path through any field (kubeconfig path, context, namespace,
   resource, ...).
-- Kubernetes authentication is entirely delegated to `kubectl`/kubeconfig; this plugin never
-  implements or stores its own Kubernetes credentials.
-- Diagnostic logging never includes PostgreSQL passwords, kubeconfig credential contents, bearer
-  tokens, private keys, or the full process environment.
+- **Loopback by default.** The forwarded port binds to `127.0.0.1` only. If the **Bind address**
+  field contains anything that is not a loopback address (e.g. `0.0.0.0` or a LAN IP), the
+  settings tab shows a red warning under the field: *"A non-loopback address exposes the database
+  to your network"*. Only do this if you specifically need other hosts to reach the port.
+- **No credentials of its own.** Kubernetes authentication is entirely delegated to
+  `kubectl`/kubeconfig; the plugin never implements, requests or stores Kubernetes credentials
+  (it does not even ask DBeaver to prompt for any).
+- **Minimal file and environment access.** The only file it reads is the kubeconfig, and only to
+  list context and namespace names as suggestions in the settings tab; it does not parse tokens,
+  certificates or keys. The only environment/system values it reads are `KUBECONFIG` and
+  `user.home`.
+- **No network code of its own.** The plugin's own code has no HTTP client, URL, socket or
+  server-socket usage and no telemetry; the only network traffic is what `kubectl` and DBeaver's
+  JDBC driver do themselves. It also uses no reflection-based class loading or native library
+  loading, and registers nothing at DBeaver startup beyond a network handler and its settings
+  panel (see the two `plugin.xml` files).
+- **Quiet logs.** Diagnostic logging never includes database passwords, kubeconfig credential
+  contents, bearer tokens, private keys, or the full process environment.
+
+### What to be aware of
+
+These are properties of the design, not hidden behavior, but they matter when you trust the
+inputs of the plugin:
+
+- **The kubectl path is executed.** `Kubectl executable` is stored per connection and run on
+  connect. If you import someone else's connection definitions (e.g. a shared `data-sources.json`),
+  review that field first — it can point to any executable. Leaving the default (`kubectl` from
+  `PATH`) is safest.
+- **kubeconfig `exec` credential plugins run commands.** A kubeconfig `exec:` block makes
+  `kubectl` run an arbitrary command to obtain credentials. That is standard `kubectl` behavior,
+  not something this plugin adds, but it means you should only use kubeconfig files you trust.
+- **Unsigned artifacts.** The plugin jars are not signed, which is why DBeaver asks you to trust
+  an *Unsigned* artifact on install. The plugin is installed from a static p2 site, a release zip
+  or your own build; trust it the way you would any unsigned download from its source.
+- **Build supply chain.** The build downloads the three `org.jkiss.*` DBeaver bundles it
+  compiles against from `dbeaver.io` over HTTPS and Maven itself via the Maven Wrapper. These
+  downloads are pinned by version but not by checksum, and the GitHub Actions used by CI are
+  pinned by major version rather than by commit SHA. The checked-in `maven-wrapper.jar` matches
+  the official Maven Central `maven-wrapper-3.3.4.jar`.
+
+### Verify before you install
+
+- **Build it yourself** with `.\mvnw.cmd clean verify` and install the result (see
+  [Build from source](#build-from-source) and
+  [Alternative: scripted install](#alternative-scripted-install-via-dbeavers-own-p2-director)).
+  Then you only have to trust the source you have read.
+- **Release builds are produced by CI**, not on a developer machine: a tag is only built if it is
+  reachable from `master`, and the result is created as a *draft* release that the maintainer
+  publishes by hand (see [`.github/workflows/release.yml`](./.github/workflows/release.yml)). The
+  workflow uses no secrets other than the automatic `GITHUB_TOKEN`.
+- **Inspect the artifact.** Each plugin jar is just compiled classes, `plugin.xml` and
+  `META-INF/MANIFEST.MF`; it can be opened with any zip tool or decompiler.
+- **Search the source yourself**, for example for process, network and file APIs:
+
+  ```text
+  ProcessBuilder   Runtime.getRuntime   HttpClient   java.net.URL   Socket
+  Class.forName    URLClassLoader       System.load   Files.         FileOutputStream
+  ```
+
+> [!NOTE]
+> This list reflects a source review of the repository. It did not include decompiling a published
+> release jar, a CVE scan of third-party dependencies, or an independent third-party audit. If you
+> find a security problem, please report it through
+> [GitHub Issues](https://github.com/nikvoronin/dbeaver-k8s-port-forward/issues).
 
 ## Troubleshooting
 
