@@ -314,7 +314,10 @@ inputs of the plugin:
   not something this plugin adds, but it means you should only use kubeconfig files you trust.
 - **Unsigned artifacts.** The plugin jars are not signed, which is why DBeaver asks you to trust
   an *Unsigned* artifact on install. The plugin is installed from a static p2 site, a release zip
-  or your own build; trust it the way you would any unsigned download from its source.
+  or your own build; trust it the way you would any unsigned download from its source. Release
+  artifacts do carry a [GitHub build-provenance attestation](#verify-before-you-install) that
+  proves where they were built, but it is not a jar signature: DBeaver does not look at it and
+  will keep showing the *Unsigned* prompt.
 - **Build supply chain.** The build downloads the three `org.jkiss.*` DBeaver bundles it
   compiles against from `dbeaver.io` over HTTPS and Maven itself via the Maven Wrapper. These
   downloads are pinned by version but not by checksum, and the GitHub Actions used by CI are
@@ -330,7 +333,64 @@ inputs of the plugin:
 - **Release builds are produced by CI**, not on a developer machine: a tag is only built if it is
   reachable from `master`, and the result is created as a *draft* release that the maintainer
   publishes by hand (see [`.github/workflows/release.yml`](./.github/workflows/release.yml)). The
-  workflow uses no secrets other than the automatic `GITHUB_TOKEN`.
+  workflow uses no secrets other than the automatic `GITHUB_TOKEN`. The artifacts it produces are
+  attested, see the next item.
+- **Verify the build provenance.** The release workflow signs a
+  [GitHub artifact attestation](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds)
+  (SLSA build provenance, Sigstore) for the release zip and for every plugin jar. It lets you
+  check that a file you downloaded is byte-for-byte what that workflow built from this repository,
+  rather than something swapped in later. You need the [GitHub CLI](https://cli.github.com/)
+  `gh` 2.49 or newer, signed in once with `gh auth login` (or with `GH_TOKEN` set); any GitHub
+  account will do, since `gh` reads the attestation through the GitHub API.
+
+  The scripts below do all of this for you. They verify the zip, then unpack it into a temporary
+  folder and verify every jar inside, and they require that the attestation comes from this
+  repository's `release.yml`. They exit with `0` when everything verified, `1` if any file failed
+  (do not install it) and `2` if `gh` is missing, too old or not signed in.
+
+  | Platform | Script | Example |
+  | --- | --- | --- |
+  | Windows (PowerShell 5.1+) | [`scripts/Verify-Attestation.ps1`](./scripts/Verify-Attestation.ps1) | `.\scripts\Verify-Attestation.ps1 .\dbeaver-k8s-port-forward_<tag>.zip` |
+  | macOS (and Linux; needs `gh`, `unzip`) | [`scripts/verify-attestation.sh`](./scripts/verify-attestation.sh) | `bash scripts/verify-attestation.sh ./dbeaver-k8s-port-forward_<tag>.zip` |
+
+  Both accept a zip and/or individual jars, or `-Tag <tag>` / `--tag <tag>` to download the zip of
+  a *published* release and verify it (drafts cannot be downloaded this way). On macOS install
+  `gh` with `brew install gh`.
+
+  ```powershell
+  .\scripts\Verify-Attestation.ps1 -Tag 1.2.0
+  ```
+
+  ```sh
+  bash scripts/verify-attestation.sh --tag 1.2.0
+  ```
+
+  The same check by hand, without the scripts:
+
+  ```powershell
+  # the release zip, downloaded from the release page
+  gh attestation verify dbeaver-k8s-port-forward_<tag>.zip --repo nikvoronin/dbeaver-k8s-port-forward
+
+  # stricter: also require that it was built by this exact workflow file
+  gh attestation verify dbeaver-k8s-port-forward_<tag>.zip `
+    --repo nikvoronin/dbeaver-k8s-port-forward `
+    --signer-workflow nikvoronin/dbeaver-k8s-port-forward/.github/workflows/release.yml
+  ```
+
+  The same works for a single jar: a standalone jar from the release assets, a jar from the
+  extracted zip's `plugins\` folder, or one downloaded from the `plugins/` path of the
+  always-latest site:
+
+  ```powershell
+  gh attestation verify io.github.nikvoronin.dbeaver.k8s_<version>.jar --repo nikvoronin/dbeaver-k8s-port-forward
+  ```
+
+  On success `gh` prints the matched attestation (`Verification succeeded!`). Add
+  `--format json` to see the details, including the source repository, the commit and tag, and
+  the workflow run that produced the file. A failure means the file is not one this workflow
+  built, so do not install it. What it does **not** tell you: that the code is free of bugs or
+  malicious logic (read the source for that), and releases made before attestation was added have
+  none to verify.
 - **Inspect the artifact.** Each plugin jar is just compiled classes, `plugin.xml` and
   `META-INF/MANIFEST.MF`; it can be opened with any zip tool or decompiler.
 - **Search the source yourself**, for example for process, network and file APIs:

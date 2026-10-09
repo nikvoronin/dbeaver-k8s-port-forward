@@ -2,6 +2,8 @@
 # with core.autocrlf=true, or it breaks with "bad interpreter" errors under Git Bash/WSL/Linux/macOS.
 mvnw text eol=lf
 mvnw.cmd text eol=crlf
+# Same reason for shell scripts: a CRLF shebang line fails with "bad interpreter" on macOS/Linux.
+*.sh text eol=lf
 
 *.jar binary
 *.zip binary
