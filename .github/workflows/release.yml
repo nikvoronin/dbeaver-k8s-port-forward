@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write       # lets actions/attest request a Sigstore signing certificate
+  attestations: write   # lets it store the resulting attestation on the repository
 
 concurrency:
   group: release-${{ github.ref }}
@@ -58,6 +60,21 @@ jobs:
         run: |
           cd repository/target/repository
           zip -r "${{ github.workspace }}/dbeaver-k8s-port-forward_${{ github.ref_name }}.zip" .
+
+      # Build-provenance attestation (SLSA, Sigstore): a signed statement that these exact files
+      # were produced by this workflow from this commit. Consumers check it with
+      # `gh attestation verify` (see README -> Security). It is NOT a jar signature, so DBeaver
+      # still shows its "Unsigned" prompt. The repository/target/repository/plugins jars are the
+      # ones served from the GitHub Pages p2 site; their names differ from the standalone jars
+      # (p2 qualifier), so they are separate subjects.
+      - name: Attest build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            dbeaver-k8s-port-forward_${{ github.ref_name }}.zip
+            plugins/io.github.nikvoronin.dbeaver.k8s/target/io.github.nikvoronin.dbeaver.k8s_*.jar
+            plugins/io.github.nikvoronin.dbeaver.k8s.ui/target/io.github.nikvoronin.dbeaver.k8s.ui_*.jar
+            repository/target/repository/plugins/*.jar
 
       - name: Create draft release
         uses: softprops/action-gh-release@v3
