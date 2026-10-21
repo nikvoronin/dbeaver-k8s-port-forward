@@ -28,11 +28,11 @@
           groupId. See docs/dbeaver-api-notes.md section 7 for the full rationale.
 
           NOTE: dbeaver.io/update/latest only keeps the most recently published
-          build, so these exact qualifiers will eventually 404. If a build fails
-          with "Could not find artifact" for one of these, browse
+          build, so these exact qualifiers will eventually 404. The weekly
+          .github/workflows/check-dbeaver-deps.yml bumps them and opens a PR (or an
+          issue if the bumped build fails). To do it by hand, browse
           https://dbeaver.io/update/latest/plugins/ and update the versions below
-          (and the matching download URLs in buildtools/dbeaver-deps/pom.xml) to
-          whatever is currently published there.
+          to whatever is currently published there.
         -->
         <dbeaver.p2.baseUrl>https://dbeaver.io/update/latest/plugins</dbeaver.p2.baseUrl>
         <dbeaver.model.version>2.0.48.202610041844</dbeaver.model.version>

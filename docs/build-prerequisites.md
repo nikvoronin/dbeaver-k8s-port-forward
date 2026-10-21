@@ -66,8 +66,9 @@ repository/target/repository/{content.jar,artifacts.jar,plugins/*.jar}
 ```
 
 If the build fails while downloading from `dbeaver.io/update/latest/` with a 404, that's the
-"only keeps the latest build" caveat above, not a missing prerequisite — update the pinned
-versions per the instructions in the root `pom.xml`.
+"only keeps the latest build" caveat above, not a missing prerequisite — merge the pin-bump PR
+that `.github/workflows/check-dbeaver-deps.yml` opens weekly, or update the pinned versions
+by hand per the instructions in the root `pom.xml`.
 
 ## Only needed for optional extra steps (not the build)
 
